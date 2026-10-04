@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glasgow Central Mosque | Live Start Times</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#064e3b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { emerald: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 700: '#047857', 800: '#065f46', 900: '#064e3b', 950: '#022c22' } }, fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'] } } }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/customParseFormat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/isSameOrBefore.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+    .arabic-font { font-family: 'Amiri', serif; }
+    @keyframes progressSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+    .progress-bar-anim { width: 45%; animation: progressSlide 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+    @keyframes pulse-ring { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.18); opacity: 0.2; } 100% { transform: scale(0.95); opacity: 0.8; } }
+    .pulse-ring-anim { animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-[#0b111c] dark:text-slate-100 min-h-screen transition-colors duration-300 antialiased flex flex-col items-center">
+
+  <div id="loadingOverlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-50 dark:bg-[#0b111c] px-6 transition-opacity duration-300">
+    <div class="relative flex items-center justify-center mb-6">
+      <div class="absolute w-28 h-28 rounded-full bg-emerald-900/40 pulse-ring-anim"></div>
+      <div class="relative w-16 h-16 rounded-2xl bg-emerald-950 flex items-center justify-center border border-emerald-800/50 shadow-lg">
+        <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+      </div>
+    </div>
+    <h2 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Glasgow Central Mosque</h2>
+    <p id="loadingStatusText" class="text-sm text-slate-500 dark:text-slate-400 mt-2 text-center flex items-center justify-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Fetching local official start times...</p>
+    <div id="loadingBar" class="w-52 bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full mt-6 overflow-hidden relative"><div class="bg-emerald-500 h-full rounded-full progress-bar-anim absolute"></div></div>
+    <div id="errorState" class="hidden mt-8 flex flex-col items-center w-full max-w-md">
+      <div class="w-full bg-[#1a0f14] border border-[#3e1b23] rounded-2xl p-6 text-center shadow-2xl">
+        <svg class="w-8 h-8 text-[#ff4d6d] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        <p class="text-lg font-bold text-[#ff6b8b] mb-2" id="errorTitle">Connection Failed</p>
+        <p class="text-sm text-[#ff8fa3] leading-relaxed px-2" id="errorDesc">Unable to retrieve live data. Strict mode active: no fallback data will be shown.</p>
+        <button id="retryOverlayBtn" class="mt-5 px-6 py-2.5 bg-[#4a1525] text-[#ffb3c1] rounded-xl text-sm font-semibold hover:bg-[#5c1a2e] transition-colors duration-200">Try Again</button>
+      </div>
+    </div>
+    <span class="text-xs text-slate-400 dark:text-slate-500 mt-8 font-mono tracking-wide opacity-50">centralmosque.co.uk</span>
+  </div>
+
+  <div id="syncPendingBanner" class="hidden w-full bg-amber-100 dark:bg-amber-900/60 border-b border-amber-200 dark:border-amber-800 px-4 py-2 text-center flex items-center justify-center gap-2 text-xs font-semibold text-amber-800 dark:text-amber-300 transition-all z-50">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+    Heads up: Next month's official times haven't synced yet.
+  </div>
+
+  <header class="w-full max-w-2xl px-4 pt-4 pb-3 flex items-center justify-between sticky top-0 z-40 bg-slate-50/90 dark:bg-[#0b111c]/90 backdrop-blur-md border-b border-slate-200/70 dark:border-slate-800/70">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-2xl bg-emerald-600/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xl shadow-inner border border-emerald-500/20"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg></div>
+      <div>
+        <h1 class="text-base font-bold tracking-tight text-slate-900 dark:text-white leading-none flex items-center gap-1.5">
+          Glasgow Central Mosque
+          <span id="syncBadge" class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400">Waiting...</span>
+        </h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 flex items-center gap-1" id="headerContextText">Strictly Start Times • Zero Jama'at</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-2">
+      <button id="refreshBtn" title="Re-fetch Timetable" class="p-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition shadow-sm"><svg id="refreshIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg></button>
+      <button id="openSettingsBtn" title="Settings" class="p-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg></button>
+      <button id="themeToggleBtn" title="Theme" class="p-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 hover:text-amber-500 transition shadow-sm"><svg id="sunIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg><svg id="moonIcon" class="w-5 h-5 block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg></button>
+    </div>
+  </header>
+
+  <main class="w-full max-w-2xl px-4 py-4 space-y-4 pb-20 opacity-0 transition-opacity duration-300" id="mainContent">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-white dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/50 rounded-2xl p-4 shadow-sm backdrop-blur-sm gap-2">
+      <div>
+        <div class="text-xs font-semibold tracking-wider uppercase text-slate-400 dark:text-slate-400" id="gregorianDate">--</div>
+        <div class="text-sm font-medium text-emerald-700 dark:text-emerald-400 arabic-font tracking-wide mt-0.5" id="hijriDate">Glasgow Central Mosque Feed</div>
+      </div>
+      <div class="flex items-baseline space-x-2">
+        <span class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums" id="liveTime">00:00:00</span>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 uppercase tabular-nums" id="timeZoneLabel">GMT</span>
+      </div>
+    </div>
+
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-800 via-emerald-900 to-slate-950 text-white p-6 shadow-xl shadow-emerald-950/25 border border-emerald-600/30">
+      <div class="absolute -right-12 -top-12 w-48 h-48 rounded-full border-[18px] border-white/5 pointer-events-none"></div>
+      <div class="absolute right-6 -bottom-16 w-36 h-36 rounded-full border-[12px] border-white/5 pointer-events-none"></div>
+      <div class="relative z-10 flex flex-col justify-between h-full space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-200 text-xs font-semibold border border-emerald-400/20 backdrop-blur-md"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>Upcoming Prayer</div>
+          <span class="text-xs text-emerald-200/80 font-medium" id="heroPrayerWindow">Glasgow Official Timetable</span>
+        </div>
+        <div class="flex items-baseline justify-between pt-1">
+          <div>
+            <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight" id="nextPrayerName">--</h2>
+            <p class="text-xs text-emerald-200/90 mt-1">Starts strictly at <span class="font-bold text-white tabular-nums text-sm" id="nextPrayerTime">--:--</span></p>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl sm:text-3xl font-mono font-bold tracking-tight text-emerald-100 tabular-nums" id="countdownTimer">--:--:--</div>
+            <p class="text-[11px] text-emerald-300/70 font-medium">remaining</p>
+          </div>
+        </div>
+        <div class="space-y-1.5 pt-2">
+          <div class="w-full bg-emerald-950/60 rounded-full h-2 overflow-hidden p-0.5 border border-emerald-500/20"><div id="prayerProgressBar" class="bg-gradient-to-r from-emerald-400 to-teal-200 h-full rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div></div>
+          <div class="flex justify-between text-[10px] text-emerald-300/70 font-medium"><span id="prevPrayerLabel">Current: --</span><span id="nextPrayerTargetLabel">Next: --</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between px-1 pt-2">
+      <div class="flex space-x-1 bg-slate-200/70 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-300/50 dark:border-slate-700/50">
+        <button id="viewTodayTab" class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-sm transition">Today's Start Times</button>
+        <button id="viewCalendarTab" class="px-4 py-1.5 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">Monthly Timetable</button>
+      </div>
+      <button id="exportIcsBtn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition shadow-sm"><svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>Export .ICS</button>
+    </div>
+
+    <div id="todayView" class="space-y-2.5">
+      <div class="bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 p-2 sm:p-3 divide-y divide-slate-100 dark:divide-slate-700/40 shadow-sm">
+        <div id="prayerCardsContainer"></div>
+      </div>
+    </div>
+
+    <div id="calendarView" class="hidden space-y-3">
+      <div class="bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <button id="prevMonthBtn" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+          <div class="text-center"><h3 id="calendarMonthTitle" class="text-sm font-bold text-slate-900 dark:text-white">Monthly Schedule</h3><span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Glasgow Central Mosque</span></div>
+          <button id="nextMonthBtn" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+        </div>
+        <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-slate-400 mb-2"><div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div></div>
+        <div id="calendarGrid" class="grid grid-cols-7 gap-1.5 text-xs font-medium"></div>
+      </div>
+      <div id="selectedDateDetailCard" class="bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40 rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div><h4 id="selectedDateTitle" class="text-sm font-bold text-slate-900 dark:text-white">Selected Date</h4><p class="text-xs text-emerald-700 dark:text-emerald-400">Official Glasgow Central Mosque Start Times</p></div>
+          <button id="resetToTodayBtn" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-600/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600/20 transition">Back to Today</button>
+        </div>
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center" id="selectedDateTimesGrid"></div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-800/60 transition" id="quickToggleNotifArea">
+      <div class="flex items-center space-x-2.5">
+        <div id="notifStatusIndicator" class="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
+        <div class="text-xs">
+          <span class="font-medium text-slate-700 dark:text-slate-300" id="notifStatusText">Notifications Disabled</span>
+          <span class="block text-[10px] text-slate-400 dark:text-slate-400">Local alarms & soft chimes</span>
+        </div>
+      </div>
+      <button id="quickToggleNotifBtn" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition">Enable</button>
+    </div>
+
+    <footer class="text-center pt-4 pb-2 space-y-1">
+      <p class="text-xs text-slate-500 dark:text-slate-400">Live timetable automated via <a href="https://centralmosque.co.uk" target="_blank" class="underline hover:text-emerald-600">centralmosque.co.uk</a>.</p>
+    </footer>
+  </main>
+
+  <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden transition-opacity opacity-0">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 transform scale-95 transition-transform">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">Alert Preferences</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Manage notifications for Glasgow start times</p>
+        </div>
+        <button id="closeSettingsBtn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+          <div>
+            <div class="font-semibold text-slate-800 dark:text-slate-200">Asr Start Time Variant</div>
+            <div class="text-[11px] text-slate-400">GCM publishes Standard & Mithlayn</div>
+          </div>
+          <select id="asrMethodSelect" class="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs rounded-lg px-2.5 py-1.5 font-medium text-slate-700 dark:text-slate-200 focus:ring-emerald-500">
+            <option value="I">Begins (I) - Standard</option><option value="II">Begins (II) - Mithlayn</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+          <div>
+            <div class="font-semibold text-slate-800 dark:text-slate-200">Harmonic Chime (Audio)</div>
+            <div class="text-[11px] text-slate-400">Bell sound at prayer start time</div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="audioChimeToggle" class="sr-only peer" checked>
+            <div class="w-10 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-600"></div>
+          </label>
+        </div>
+
+        <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2">
+          <div class="font-semibold text-slate-800 dark:text-slate-200">Notification Timing</div>
+          <div class="grid grid-cols-4 gap-1.5" id="offsetOptionsContainer">
+            <button data-offset="0" class="offset-btn py-1.5 rounded-lg border text-center font-medium bg-emerald-600 text-white border-emerald-600">Exact</button>
+            <button data-offset="5" class="offset-btn py-1.5 rounded-lg border text-center font-medium border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">5m</button>
+            <button data-offset="10" class="offset-btn py-1.5 rounded-lg border text-center font-medium border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">10m</button>
+            <button data-offset="15" class="offset-btn py-1.5 rounded-lg border text-center font-medium border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">15m</button>
+          </div>
+        </div>
+        
+        <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2">
+          <div class="font-semibold text-slate-800 dark:text-slate-200">Active Prayer Alerts</div>
+          <div class="grid grid-cols-2 gap-2 text-slate-600 dark:text-slate-300">
+            <label class="flex items-center space-x-2"><input type="checkbox" id="alertFajr" class="rounded text-emerald-600 focus:ring-emerald-500"><span>Fajr</span></label>
+            <label class="flex items-center space-x-2"><input type="checkbox" id="alertZuhr" class="rounded text-emerald-600 focus:ring-emerald-500"><span>Zuhr</span></label>
+            <label class="flex items-center space-x-2"><input type="checkbox" id="alertAsr" class="rounded text-emerald-600 focus:ring-emerald-500"><span>Asr</span></label>
+            <label class="flex items-center space-x-2"><input type="checkbox" id="alertMaghrib" class="rounded text-emerald-600 focus:ring-emerald-500"><span>Maghrib</span></label>
+            <label class="flex items-center space-x-2"><input type="checkbox" id="alertIsha" class="rounded text-emerald-600 focus:ring-emerald-500"><span>Isha</span></label>
+          </div>
+        </div>
+
+        <div class="text-[10px] text-slate-400 text-center px-2">Note: iOS strictly limits background audio and notifications. Keep the app open in a tab for reliable chimes on Apple devices.</div>
+
+        <button id="testAlertBtn" class="w-full py-2.5 rounded-xl border border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition flex items-center justify-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>Test Notification & Chime</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl shadow-lg border border-slate-700 flex items-center space-x-2 transform translate-y-20 opacity-0 transition-all duration-300"><span id="toastMessage">Alert</span></div>
+
+  <script>
+    dayjs.extend(window.dayjs_plugin_utc); dayjs.extend(window.dayjs_plugin_timezone); dayjs.extend(window.dayjs_plugin_customParseFormat); dayjs.extend(window.dayjs_plugin_isSameOrBefore); dayjs.tz.setDefault("Europe/London");
+    if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js')); }
+
+    let activeTimetable = null; let calendarDate = dayjs.tz(); let selectedDetailDate = dayjs.tz(); let triggeredAlertsToday = new Set(); let globalAudioCtx = null;
+    let userSettings = { theme: localStorage.getItem('glasgow_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'), audioChime: localStorage.getItem('glasgow_chime') !== 'false', offsetMinutes: parseInt(localStorage.getItem('glasgow_offset') || '0', 10), asrVariant: localStorage.getItem('glasgow_asr_variant') || 'I', prayers: JSON.parse(localStorage.getItem('glasgow_prayers_active') || '{"Fajr":true,"Zuhr":true,"Asr":true,"Maghrib":true,"Isha":true}') };
+
+    function initAudioContext() { if (!globalAudioCtx) globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (globalAudioCtx.state === 'suspended') globalAudioCtx.resume(); }
+    document.addEventListener('click', initAudioContext, { once: true }); document.addEventListener('touchstart', initAudioContext, { once: true });
+
+    class GentleChime {
+      static play() {
+        if (!globalAudioCtx) initAudioContext();
+        if (globalAudioCtx && globalAudioCtx.state === 'suspended') globalAudioCtx.resume();
+        try {
+          const notes = [698.46, 880.00, 1046.50];
+          notes.forEach((freq, idx) => {
+            const osc = globalAudioCtx.createOscillator(); const gain = globalAudioCtx.createGain(); osc.type = 'sine';
+            const start = globalAudioCtx.currentTime + (idx * 0.15); osc.frequency.setValueAtTime(freq, start);
+            gain.gain.setValueAtTime(0.0001, start); gain.gain.exponentialRampToValueAtTime(0.2, start + 0.05); gain.gain.exponentialRampToValueAtTime(0.0001, start + 2.0);
+            osc.connect(gain); gain.connect(globalAudioCtx.destination); osc.start(start); osc.stop(start + 2.1);
+          });
+        } catch (e) { console.warn("Chime failed", e); }
+      }
+    }
+
+    async function fetchGlasgowCentralMosqueLive() {
+      const overlay = document.getElementById('loadingOverlay'); const badge = document.getElementById('syncBadge'); const statusText = document.getElementById('loadingStatusText'); const errorState = document.getElementById('errorState'); const loadingBar = document.getElementById('loadingBar');
+      errorState.classList.add('hidden'); loadingBar.classList.remove('hidden');
+      if (statusText) statusText.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Fetching local timetable...';
+
+      try {
+        const response = await fetch(`./timetable.json?t=${new Date().getTime()}`);
+        if (!response.ok) throw new Error("Could not load timetable.json");
+        
+        const data = await response.json(); const meta = data.metadata; activeTimetable = data.schedule;
+        const currentMonth = dayjs.tz().month() + 1; const currentYear = dayjs.tz().year(); const daysInMonth = dayjs.tz().daysInMonth(); const currentDay = dayjs.tz().date();
+        
+        let isExpired = false;
+        if (meta.valid_for_year < currentYear) isExpired = true;
+        else if (meta.valid_for_year === currentYear && meta.valid_for_month < currentMonth) isExpired = true;
+
+        if (isExpired) {
+           badge.textContent = 'Data Expired'; badge.className = 'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-300';
+           document.getElementById('errorTitle').textContent = "Data Expired"; document.getElementById('errorDesc').textContent = `The backend schedule is stuck on ${meta.valid_for_month}/${meta.valid_for_year}. Month rollover failed to execute.`;
+           loadingBar.classList.add('hidden'); errorState.classList.remove('hidden'); return; 
+        }
+
+        if (meta.valid_for_year === currentYear && meta.valid_for_month === currentMonth && (daysInMonth - currentDay <= 3)) {
+          document.getElementById('syncPendingBanner').classList.remove('hidden');
+        } else {
+          document.getElementById('syncPendingBanner').classList.add('hidden');
+        }
+
+        badge.textContent = 'Live Official'; badge.className = 'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300';
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        document.getElementById('headerContextText').innerHTML = `Strictly Start Times • Verified for ${monthNames[meta.valid_for_month - 1]} ${meta.valid_for_year}`;
+        document.getElementById('mainContent').classList.remove('opacity-0'); overlay.classList.add('opacity-0', 'pointer-events-none'); setTimeout(() => overlay.classList.add('hidden'), 300);
+        buildTodayCards(); renderTodaySchedule(); renderCalendar();
+      } catch (err) {
+        console.warn("JSON fetch failed:", err);
+        badge.textContent = 'Sync Failed'; badge.className = 'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-300';
+        document.getElementById('errorTitle').textContent = "File Missing"; document.getElementById('errorDesc').textContent = "Could not locate the timetable.json file. Check GitHub Actions deployment.";
+        loadingBar.classList.add('hidden'); errorState.classList.remove('hidden');
+      }
+    }
+
+    function getDaySchedule(dayNum) {
+      if (!activeTimetable) return null; const row = activeTimetable[dayNum]; 
+      if (!row) return { Fajr:"--:--", Sunrise:"--:--", Zuhr:"--:--", Asr:"--:--", Maghrib:"--:--", Isha:"--:--" };
+      const asr = userSettings.asrVariant === 'II' ? (row.Asr_II || row.Asr_I) : (row.Asr_I || row.Asr);
+      return { day: dayNum, Fajr: row.Fajr, Sunrise: row.Sunrise, Zuhr: row.Zuhr, Asr: asr, Maghrib: row.Maghrib, Isha: row.Isha };
+    }
+
+    const prayerIcons = {
+      Fajr: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>',
+      Sunrise: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3v2m0 14v2m9-9h-2M5 12H3m14.364-5.364l-1.414 1.414M7.05 16.95l-1.414 1.414M16.95 16.95l1.414 1.414M6.343 7.05L4.93 5.636M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>',
+      Zuhr: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
+      Asr: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z"></path>',
+      Maghrib: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>',
+      Isha: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>'
+    };
+    const prayerSubtexts = { Fajr: "Dawn begins", Sunrise: "Fajr validity end", Zuhr: "Midday begins", Asr: "Late afternoon", Maghrib: "Sunset begins", Isha: "Night begins" };
+
+    function buildTodayCards() {
+      const container = document.getElementById('prayerCardsContainer'); const prayers = ['Fajr', 'Sunrise', 'Zuhr', 'Asr', 'Maghrib', 'Isha'];
+      container.innerHTML = prayers.map(p => `
+        <div id="card-${p.toLowerCase()}" class="prayer-row p-3 rounded-xl flex items-center justify-between transition-all duration-200 ${p==='Sunrise'?'opacity-75':''}">
+          <div class="flex items-center space-x-3.5">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center ${p==='Sunrise' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300'}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">${prayerIcons[p]}</svg></div>
+            <div><div class="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">${p}<span class="status-badge hidden text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider"></span>${p==='Asr' ? `<span id="asrMethodBadge" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 font-normal">Begins (${userSettings.asrVariant})</span>` : ''}</div><p class="text-xs text-slate-400 dark:text-slate-400">${prayerSubtexts[p]}</p></div>
+          </div>
+          <div class="text-right"><span class="text-lg font-bold font-mono text-slate-800 dark:text-slate-100 tabular-nums" id="time-${p.toLowerCase()}">--:--</span><span class="block text-[10px] ${p==='Sunrise' ? 'text-slate-400' : 'text-emerald-600 dark:text-emerald-400'} font-semibold">Starts at</span></div>
+        </div>
+      `).join('');
+    }
+
+    function updateClock() {
+      const now = dayjs.tz(); document.getElementById('liveTime').textContent = now.format('HH:mm:ss'); document.getElementById('gregorianDate').textContent = now.format('dddd, D MMMM YYYY');
+      try { const hijriFmt = new Intl.DateTimeFormat('en-TN-u-ca-islamic-umalqura', { day: 'numeric', month: 'long', year: 'numeric', timeZone: "Europe/London" }); document.getElementById('hijriDate').textContent = hijriFmt.format(new Date()) + ' AH'; } catch (e) { document.getElementById('hijriDate').textContent = 'Glasgow Official Schedule'; }
+      document.getElementById('timeZoneLabel').textContent = now.format('z (UTCZ)');
+    }
+
+    function renderTodaySchedule() {
+      if (!activeTimetable) return; const todayNum = dayjs.tz().date(); const times = getDaySchedule(todayNum);
+      ['Fajr', 'Sunrise', 'Zuhr', 'Asr', 'Maghrib', 'Isha'].forEach(p => { const el = document.getElementById(`time-${p.toLowerCase()}`); if(el) el.textContent = times[p]; });
+      const asrBadge = document.getElementById('asrMethodBadge'); if(asrBadge) asrBadge.textContent = `Begins (${userSettings.asrVariant})`; updatePrayerHighlights(times);
+    }
+
+    function parsePrayerToDayjs(timeStr, baseDate) {
+      if (timeStr === "--:--") return baseDate; const [h, m] = timeStr.split(':').map(Number); return baseDate.hour(h).minute(m).second(0).millisecond(0);
+    }
+
+    function updatePrayerHighlights(todayTimes) {
+      if (!activeTimetable || !todayTimes || todayTimes.Fajr === "--:--") return;
+      const now = dayjs.tz(); const fardhKeys = ['Fajr', 'Zuhr', 'Asr', 'Maghrib', 'Isha'];
+      const prayers = fardhKeys.map(key => ({ key, timeStr: todayTimes[key], timeObj: parsePrayerToDayjs(todayTimes[key], now) }));
+
+      let nextPrayer = null; let prevPrayer = null; let isNextTomorrow = false;
+      for (let i = 0; i < prayers.length; i++) {
+        if (now.isBefore(prayers[i].timeObj)) { nextPrayer = prayers[i]; prevPrayer = i > 0 ? prayers[i - 1] : prayers[prayers.length - 1]; break; }
+      }
+
+      if (!nextPrayer) {
+        isNextTomorrow = true; prevPrayer = prayers[prayers.length - 1]; 
+        const tomorrow = now.add(1, 'day'); const tomorrowTimes = getDaySchedule(tomorrow.date());
+        nextPrayer = { key: 'Fajr', timeStr: tomorrowTimes.Fajr, timeObj: parsePrayerToDayjs(tomorrowTimes.Fajr, tomorrow) };
+      }
+
+      document.getElementById('nextPrayerName').textContent = nextPrayer.key; document.getElementById('nextPrayerTime').textContent = nextPrayer.timeStr; document.getElementById('prevPrayerLabel').textContent = `Current: ${prevPrayer.key}`; document.getElementById('nextPrayerTargetLabel').textContent = `Next: ${nextPrayer.key} (${nextPrayer.timeStr})`; document.getElementById('heroPrayerWindow').textContent = isNextTomorrow ? "Tomorrow Morning" : "Today";
+      const diffSecs = nextPrayer.timeObj.diff(now, 'second'); const hRem = Math.floor(diffSecs / 3600); const mRem = Math.floor((diffSecs % 3600) / 60); const sRem = Math.floor(diffSecs % 60);
+      document.getElementById('countdownTimer').textContent = `${String(hRem).padStart(2, '0')}:${String(mRem).padStart(2, '0')}:${String(sRem).padStart(2, '0')}`;
+
+      let prevTimeObj = prevPrayer.timeObj;
+      if (!isNextTomorrow && nextPrayer.key === 'Fajr') { const yesterday = now.subtract(1, 'day'); const yTimes = getDaySchedule(yesterday.date()); prevTimeObj = parsePrayerToDayjs(yTimes.Isha, yesterday); }
+      
+      const totalSpan = nextPrayer.timeObj.diff(prevTimeObj, 'second'); const elapsed = now.diff(prevTimeObj, 'second'); const percent = Math.min(100, Math.max(0, (elapsed / (totalSpan || 1)) * 100));
+      document.getElementById('prayerProgressBar').style.width = `${percent.toFixed(1)}%`;
+
+      fardhKeys.forEach(key => {
+        const card = document.getElementById(`card-${key.toLowerCase()}`); if (!card) return;
+        const badge = card.querySelector('.status-badge'); card.classList.remove('bg-emerald-500/10', 'dark:bg-emerald-500/15', 'border', 'border-emerald-500/30'); badge.classList.add('hidden');
+        if (key === prevPrayer.key && !isNextTomorrow) { card.classList.add('bg-emerald-500/10', 'dark:bg-emerald-500/15', 'border', 'border-emerald-500/30'); badge.textContent = 'Active Now'; badge.className = 'status-badge inline-block text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'; }
+        else if (key === nextPrayer.key && !isNextTomorrow) { badge.textContent = 'Next'; badge.className = 'status-badge inline-block text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'; }
+      });
+      checkAlerts(prayers, now);
+    }
+
+    function checkAlerts(prayers, now) {
+      if (Notification.permission !== "granted") return;
+      const todayDateKey = now.format('YYYY-MM-DD');
+      prayers.forEach(p => {
+        if (!userSettings.prayers[p.key]) return;
+        const triggerTime = p.timeObj.subtract(userSettings.offsetMinutes, 'minute');
+        if (now.isSame(triggerTime, 'minute')) {
+          const alertKey = `${p.key}-${todayDateKey}-${userSettings.offsetMinutes}`;
+          if (!triggeredAlertsToday.has(alertKey)) { triggeredAlertsToday.add(alertKey); dispatchNotification(p.key, p.timeStr, userSettings.offsetMinutes); }
+        }
+      });
+    }
+
+    function dispatchNotification(name, time, offset) {
+      if (userSettings.audioChime) GentleChime.play();
+      let text = offset > 0 ? `${name} starts in ${offset} minutes (${time}) - Glasgow Central Mosque.` : `Time for ${name} in Glasgow (${time}).`;
+      if ("Notification" in window && Notification.permission === "granted") { new Notification(`${name} Prayer Time`, { body: text, silent: !userSettings.audioChime }); }
+      showToast(text);
+    }
+
+    function showToast(msg) { const toast = document.getElementById('toast'); document.getElementById('toastMessage').textContent = msg; toast.classList.remove('opacity-0', 'translate-y-20'); toast.classList.add('opacity-100', 'translate-y-0'); setTimeout(() => { toast.classList.add('opacity-0', 'translate-y-20'); toast.classList.remove('opacity-100', 'translate-y-0'); }, 4000); }
+
+    function renderCalendar() {
+      if (!activeTimetable) return; const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
+      const year = calendarDate.year(); const month = calendarDate.month(); document.getElementById('calendarMonthTitle').textContent = calendarDate.format('MMMM YYYY');
+      const firstDay = calendarDate.startOf('month'); const totalDays = calendarDate.daysInMonth();
+      for (let i = 0; i < firstDay.day(); i++) { const blank = document.createElement('div'); blank.className = 'h-10 rounded-xl bg-transparent'; grid.appendChild(blank); }
+      const today = dayjs.tz();
+      for (let day = 1; day <= totalDays; day++) {
+        const isToday = (year === today.year() && month === today.month() && day === today.date()); const isSelected = (day === selectedDetailDate.date() && month === selectedDetailDate.month());
+        const cell = document.createElement('button');
+        cell.className = `h-10 rounded-xl flex flex-col items-center justify-center transition font-medium border ${ isSelected ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-md' : isToday ? 'bg-emerald-100 dark:bg-emerald-950/60 border-emerald-400/80 text-emerald-800 dark:text-emerald-300 font-bold' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/50 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200' }`;
+        cell.innerHTML = `<span>${day}</span>`; cell.addEventListener('click', (e) => { e.stopPropagation(); selectedDetailDate = calendarDate.date(day); renderCalendar(); renderSelectedDateDetail(day); }); grid.appendChild(cell);
+      }
+      renderSelectedDateDetail(selectedDetailDate.date());
+    }
+
+    function renderSelectedDateDetail(dayNum) {
+      if (!activeTimetable) return; const grid = document.getElementById('selectedDateTimesGrid'); document.getElementById('selectedDateTitle').textContent = selectedDetailDate.format('ddd, D MMM YYYY');
+      const times = getDaySchedule(dayNum);
+      const items = [{ label: 'Fajr', time: times.Fajr }, { label: 'Sunrise', time: times.Sunrise, isSub: true }, { label: 'Zuhr', time: times.Zuhr }, { label: 'Asr', time: times.Asr }, { label: 'Maghrib', time: times.Maghrib }, { label: 'Isha', time: times.Isha }];
+      grid.innerHTML = items.map(item => `<div class="bg-white/80 dark:bg-slate-800/80 p-2.5 rounded-xl border ${item.isSub ? 'border-amber-400/30' : 'border-emerald-500/20'}"><span class="text-[11px] font-medium text-slate-400 block">${item.label}</span><span class="text-sm font-bold font-mono text-slate-900 dark:text-white tabular-nums">${item.time}</span><span class="text-[9px] text-emerald-600 dark:text-emerald-400 font-medium block mt-0.5">Start</span></div>`).join('');
+    }
+
+    function exportIcsFile() {
+      if (!activeTimetable) return showToast("No active data to export.");
+      let ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Glasgow Central Mosque Start Times//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Glasgow Prayer Times (Begins)', 'X-WR-TIMEZONE:Europe/London'];
+      for (let offset = 0; offset < 30; offset++) {
+        const d = dayjs.tz().add(offset, 'day'); const datePrefix = d.format('YYYYMMDD'); const times = getDaySchedule(d.date());
+        if (times.Fajr === "--:--") continue;
+        ['Fajr', 'Zuhr', 'Asr', 'Maghrib', 'Isha'].forEach(name => {
+          const timeObj = parsePrayerToDayjs(times[name], d); const startTime = timeObj.format('YYYYMMDDTHHmmss'); const endTime = timeObj.add(20, 'minute').format('YYYYMMDDTHHmmss');
+          ics.push('BEGIN:VEVENT', `UID:gcm-${name.toLowerCase()}-${datePrefix}@centralmosque`, `DTSTAMP:${d.format('YYYYMMDD')}T000000Z`, `DTSTART;TZID=Europe/London:${startTime}`, `DTEND;TZID=Europe/London:${endTime}`, `SUMMARY:${name} Starts (${times[name]})`, `DESCRIPTION:Glasgow Central Mosque start time for ${name}. Strictly no Jama'at.`, 'LOCATION:Glasgow Central Mosque, 1 Mosque Ave, Glasgow G5 9TA', 'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${name} Prayer Begins`, `TRIGGER:-PT${userSettings.offsetMinutes}M`, 'END:VALARM', 'END:VEVENT');
+        });
+      }
+      ics.push('END:VCALENDAR');
+      const blob = new Blob([ics.join('\r\n')], { type: 'text/calendar;charset=utf-8' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.setAttribute('download', 'glasgow_gcm_start_times.ics'); document.body.appendChild(link); link.click(); document.body.removeChild(link); showToast("Downloaded Glasgow start timetable (.ics).");
+    }
+
+    function bindUiEvents() {
+      const applyTheme = (mode) => {
+        if (mode === 'dark') { document.documentElement.classList.add('dark'); document.getElementById('sunIcon').classList.remove('hidden'); document.getElementById('moonIcon').classList.add('hidden'); }
+        else { document.documentElement.classList.remove('dark'); document.getElementById('sunIcon').classList.add('hidden'); document.getElementById('moonIcon').classList.add('hidden'); }
+        localStorage.setItem('glasgow_theme', mode);
+      };
+      applyTheme(userSettings.theme);
+      document.getElementById('themeToggleBtn').addEventListener('click', () => { userSettings.theme = userSettings.theme === 'dark' ? 'light' : 'dark'; applyTheme(userSettings.theme); });
+      const todayTab = document.getElementById('viewTodayTab'); const calTab = document.getElementById('viewCalendarTab'); const todayView = document.getElementById('todayView'); const calendarView = document.getElementById('calendarView');
+      todayTab.addEventListener('click', () => { todayTab.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-sm transition'; calTab.className = 'px-4 py-1.5 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition'; todayView.classList.remove('hidden'); calendarView.classList.add('hidden'); });
+      calTab.addEventListener('click', () => { calTab.className = 'px-4 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-sm transition'; todayTab.className = 'px-4 py-1.5 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition'; todayView.classList.add('hidden'); calendarView.classList.remove('hidden'); renderCalendar(); });
+      document.getElementById('prevMonthBtn').addEventListener('click', () => { calendarDate = calendarDate.subtract(1, 'month'); renderCalendar(); });
+      document.getElementById('nextMonthBtn').addEventListener('click', () => { calendarDate = calendarDate.add(1, 'month'); renderCalendar(); });
+      document.getElementById('resetToTodayBtn').addEventListener('click', () => { calendarDate = dayjs.tz(); selectedDetailDate = dayjs.tz(); renderCalendar(); });
+      document.getElementById('exportIcsBtn').addEventListener('click', exportIcsFile);
+      document.getElementById('retryOverlayBtn').addEventListener('click', fetchGlasgowCentralMosqueLive);
+      document.getElementById('refreshBtn').addEventListener('click', () => { const icon = document.getElementById('refreshIcon'); icon.classList.add('animate-spin'); fetchGlasgowCentralMosqueLive().then(() => icon.classList.remove('animate-spin')); });
+      const settingsModal = document.getElementById('settingsModal'); const modalBox = settingsModal.querySelector('div');
+      const openModal = () => { settingsModal.classList.remove('hidden'); setTimeout(() => { settingsModal.classList.remove('opacity-0'); modalBox.classList.remove('scale-95'); modalBox.classList.add('scale-100'); }, 10); };
+      const closeModal = () => { settingsModal.classList.add('opacity-0'); modalBox.classList.remove('scale-100'); modalBox.classList.add('scale-95'); setTimeout(() => settingsModal.classList.add('hidden'), 200); };
+      document.getElementById('openSettingsBtn').addEventListener('click', openModal); document.getElementById('closeSettingsBtn').addEventListener('click', closeModal); settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeModal(); });
+      const asrSelect = document.getElementById('asrMethodSelect'); asrSelect.value = userSettings.asrVariant;
+      asrSelect.addEventListener('change', (e) => { userSettings.asrVariant = e.target.value; localStorage.setItem('glasgow_asr_variant', userSettings.asrVariant); renderTodaySchedule(); renderCalendar(); showToast(`Asr variant set to Begins (${userSettings.asrVariant})`); });
+      const refreshNotifUi = () => {
+        const text = document.getElementById('notifStatusText'); const ind = document.getElementById('notifStatusIndicator'); const btn = document.getElementById('quickToggleNotifBtn');
+        if (!("Notification" in window)) { text.textContent = "Notifications Not Supported"; btn.classList.add('hidden'); return; }
+        if (Notification.permission === "granted") { ind.className = "w-2.5 h-2.5 rounded-full bg-emerald-500"; text.textContent = "Notifications Active"; btn.textContent = "Config"; btn.className = "px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition"; }
+        else if (Notification.permission === "denied") { ind.className = "w-2.5 h-2.5 rounded-full bg-rose-500"; text.textContent = "Permission Blocked"; btn.textContent = "Blocked"; }
+        else { ind.className = "w-2.5 h-2.5 rounded-full bg-amber-400"; text.textContent = "Permission Required"; btn.textContent = "Enable"; }
+      };
+      document.getElementById('quickToggleNotifArea').addEventListener('click', () => { if (Notification.permission !== "granted") { if ("Notification" in window) Notification.requestPermission().then(r => { refreshNotifUi(); if (r === 'granted') showToast("Notifications enabled!"); }); } else openModal(); }); refreshNotifUi();
+      const chimeToggle = document.getElementById('audioChimeToggle'); chimeToggle.checked = userSettings.audioChime;
+      chimeToggle.addEventListener('change', (e) => { userSettings.audioChime = e.target.checked; localStorage.setItem('glasgow_chime', userSettings.audioChime); });
+      const offsetBtns = document.querySelectorAll('.offset-btn');
+      const updateOffsetBtns = (val) => { offsetBtns.forEach(btn => { btn.className = parseInt(btn.getAttribute('data-offset'), 10) === val ? 'offset-btn py-1.5 rounded-lg border text-center font-medium bg-emerald-600 text-white border-emerald-600' : 'offset-btn py-1.5 rounded-lg border text-center font-medium border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'; }); };
+      updateOffsetBtns(userSettings.offsetMinutes);
+      offsetBtns.forEach(btn => { btn.addEventListener('click', () => { const val = parseInt(btn.getAttribute('data-offset'), 10); userSettings.offsetMinutes = val; localStorage.setItem('glasgow_offset', val); updateOffsetBtns(val); }); });
+      ['Fajr', 'Zuhr', 'Asr', 'Maghrib', 'Isha'].forEach(name => { const el = document.getElementById(`alert${name}`); el.checked = userSettings.prayers[name] !== false; el.addEventListener('change', (e) => { userSettings.prayers[name] = e.target.checked; localStorage.setItem('glasgow_prayers_active', JSON.stringify(userSettings.prayers)); }); });
+      document.getElementById('testAlertBtn').addEventListener('click', () => { dispatchNotification('Prayer (Sample)', dayjs().format('HH:mm'), userSettings.offsetMinutes); });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      buildTodayCards(); updateClock(); bindUiEvents(); fetchGlasgowCentralMosqueLive();
+      setInterval(() => { updateClock(); if (activeTimetable) updatePrayerHighlights(getDaySchedule(dayjs.tz().date())); }, 1000);
+    });
+  </script>
+</body>
+</html>
